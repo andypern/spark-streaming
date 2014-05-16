@@ -3,7 +3,7 @@ nc -lk 9999.  But, to make things more useful, do something like this:
 1) mkfifo /mapr/cluster/input
 2) tail -f /mapr/cluster/input | nc -lk 9999
 3) start this spark app to connect to the port
-4) echo/cat stuff into /mapr/cluster/input
+4) echo/cat stuff into /mapr/cluster/input, eg: `for i in SensorDataV5.csv |sort -k2 -k3 -t $',' `;do echo $i > in;sleep .01;done;
 This should allow the connection to stay open, and be able to shove whatever you want into the FIFO and have it show up on the spark side.
 */
 
