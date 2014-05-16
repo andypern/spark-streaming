@@ -51,4 +51,4 @@ CLASSPATH+=:/opt/mapr/lib/maprfs-1.0.3-mapr-3.0.3.jar
 
 #finally, execute the code
 
-/bin/java -cp $CLASSPATH org.apache.spark.streaming.m7import.m7import spark://shark-1:7077 shark-1 9999 3 /tables/mytable
+/bin/java -cp $CLASSPATH org.apache.spark.streaming.m7import.m7import spark://shark-1:7077 shark-1 9999 3 /tables/mytable /mapr/shark/CSV/newfile.csv

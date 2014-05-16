@@ -14,9 +14,7 @@ This should allow the connection to stay open, and be able to shove whatever you
 
 /*TODO:
 - decide how to chunk output files up..eg: every minute? hour? day? # of rows?
-- read this : https://spark-project.atlassian.net/browse/SPARK-944
 - nice-to-have: figure out dstream 'windows' and spit something out to web/D3 somehow..
-- Create composite key instead of randomized ones.
 - Take out any hardcoded paths.
 - When saving RDD to disk, may be useful to output with the 'dateTime' squashed field instead of the date,time fields (for tableau)
 */
@@ -38,6 +36,8 @@ import org.apache.spark.util.IntParam
 import org.apache.hadoop.hbase.HBaseConfiguration
 import org.apache.hadoop.hbase.client.{HBaseAdmin,HTable,Put,Get}
 import org.apache.hadoop.hbase.util.Bytes
+import com.google.common.io.Files
+import java.nio.charset.Charset
 
 
 
@@ -68,8 +68,8 @@ object StreamingExamples extends Logging {
 
 object m7import {
   def main(args: Array[String]) {
-    if (args.length < 5) {
-      System.err.println("Usage: m7import <master> <hostname> <port> <batchsecs> </path/to/tablename>\n" +
+    if (args.length < 6) {
+      System.err.println("Usage: m7import <master> <hostname> <port> <batchsecs> </path/to/tablename> </path/to/outputFile>\n" +
         "In local mode, <master> should be 'local[n]' with n > 1")
       System.exit(1)
     }
@@ -77,8 +77,12 @@ object m7import {
   
     StreamingExamples.setStreamingLogLevels()
 
-     val Array(master, host, IntParam(port), IntParam(batchsecs), tablename) = args
+     val Array(master, host, IntParam(port), IntParam(batchsecs), tablename, outputPath) = args
 
+     //time to write an output file..we should probably split it into multiples but for now we'll just stream to a single file.
+
+    val outputFile = new File(outputPath)
+    if (outputFile.exists()) outputFile.delete()
 
     // Create the context with a X second batch size, where X is the arg you supplied as 'batchsecs'.
     val ssc = new StreamingContext(master, "M7import", Seconds(batchsecs),
@@ -150,15 +154,18 @@ object m7import {
 
     
             table.put(tblPut)
+            Files.append(resID + "," + dateTime + "," + hz + "," + disp + "," + flo + "," + sedPPM + "," + psi + "," + chlPPM + "\n", outputFile, Charset.defaultCharset())
           
           }
           /*now that each of the rows are in m7 , lets dump the entire RDD to disk.
           NOTE: we're not writing this with our 'datetime' column...
           note: this is sort of annoying..it saves to a new folder with a 'part-0000' file..just like a MR job
           */
-          val csvDir = Random.nextInt(Integer.MAX_VALUE)
+          
+          /*val csvDir = Random.nextInt(Integer.MAX_VALUE)
           rdd.saveAsTextFile("/mapr/shark/CSV/" + csvDir )
-          println("dumped " + linecount + " rows to table " + tablename + " and wrote them to /mapr/shark/CSV/" + csvDir)
+          */
+          println("dumped " + linecount + " rows to table " + tablename + " and wrote them to " + outputPath)
          
           //needless println
           //println("record array length: " + rddarray.length + " first row: " + rddarray(0))
